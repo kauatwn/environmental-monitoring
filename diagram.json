@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "author": "Aluno",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-arduino-uno",
+      "id": "uno",
+      "top": 120,
+      "left": 40,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-breadboard-half",
+      "id": "bb1",
+      "top": 120,
+      "left": 380,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_verde",
+      "top": 40,
+      "left": 410,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_amarelo",
+      "top": 40,
+      "left": 460,
+      "attrs": { "color": "yellow" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_vermelho",
+      "top": 40,
+      "left": 510,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_verde",
+      "top": 190,
+      "left": 410,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_amarelo",
+      "top": 190,
+      "left": 460,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_vermelho",
+      "top": 190,
+      "left": 510,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-photoresistor-sensor",
+      "id": "ldr",
+      "top": 30,
+      "left": 580,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-ntc-temperature-sensor",
+      "id": "ntc",
+      "top": 30,
+      "left": 670,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn",
+      "top": 270,
+      "left": 430,
+      "attrs": { "color": "blue" }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": 270,
+      "left": 530,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    ["uno:5V", "bb1:bp.1", "red", ["v0"]],
+    ["uno:GND.1", "bb1:bn.1", "black", ["v0"]],
+
+    ["uno:2", "led_verde:A", "green", ["v-30", "h120"]],
+    ["led_verde:C", "r_verde:1", "green", ["v0"]],
+    ["r_verde:2", "bb1:bn.3", "black", ["v0"]],
+
+    ["uno:4", "led_amarelo:A", "gold", ["v-40", "h180"]],
+    ["led_amarelo:C", "r_amarelo:1", "gold", ["v0"]],
+    ["r_amarelo:2", "bb1:bn.8", "black", ["v0"]],
+
+    ["uno:6", "led_vermelho:A", "red", ["v-50", "h240"]],
+    ["led_vermelho:C", "r_vermelho:1", "red", ["v0"]],
+    ["r_vermelho:2", "bb1:bn.13", "black", ["v0"]],
+
+    ["bb1:bp.18", "ldr:VCC", "red", ["v0"]],
+    ["uno:A0", "ldr:AO", "orange", ["v40", "h-220"]],
+    ["bb1:bn.18", "ldr:GND", "black", ["v0"]],
+
+    ["bb1:bp.24", "ntc:VCC", "red", ["v0"]],
+    ["uno:A1", "ntc:OUT", "purple", ["v50", "h-330"]],
+    ["bb1:bn.24", "ntc:GND", "black", ["v0"]],
+
+    ["uno:7", "btn:1.r", "blue", ["v30", "h-220"]],
+    ["bb1:bn.5", "btn:2.r", "black", ["v0"]],
+
+    ["uno:8", "bz1:2", "magenta", ["v40", "h-320"]],
+    ["bb1:bn.20", "bz1:1", "black", ["v0"]]
+  ]
+}
