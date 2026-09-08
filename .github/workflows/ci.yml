@@ -134,3 +134,47 @@ jobs:
             .pio/build/uno/SHA256SUMS
           if-no-files-found: error
           retention-days: 7
+
+  wokwi-simulation:
+    name: "Wokwi Simulation Tests (${{ matrix.name }})"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    needs: [build]
+    if: ${{ secrets.WOKWI_CLI_TOKEN != '' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "Normal Temperature"
+            scenario: "test/wokwi/test_temp_normal.yaml"
+          - name: "Warning Temperature"
+            scenario: "test/wokwi/test_temp_warning.yaml"
+          - name: "Critical Temperature"
+            scenario: "test/wokwi/test_temp_critical.yaml"
+          - name: "Darkness Condition"
+            scenario: "test/wokwi/test_light_dark.yaml"
+          - name: "Alarm Mute Toggle"
+            scenario: "test/wokwi/test_alarm_toggle.yaml"
+
+    steps:
+      - name: "Checkout code 🛎️"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "Download Firmware Artifact 📥"
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v7.0.0
+        with:
+          name: arduino-uno-firmware
+          path: .pio/build/uno
+
+      - name: "Run Wokwi Test: ${{ matrix.name }} 🧪"
+        uses: wokwi/wokwi-ci-action@11ddc3fe66a14fcd46683fb21ae5c77657ad4606 # v1.2.0
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: .
+          scenario: ${{ matrix.scenario }}
+          timeout: 10000
