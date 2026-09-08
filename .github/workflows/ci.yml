@@ -43,7 +43,7 @@ jobs:
 
       - name: "Check Code Formatting (Clang-Format) 🎨"
         run: |
-          find src include lib test -type f \
+          find src include lib -type f \
             \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
             -exec clang-format --dry-run --Werror {} +
 
