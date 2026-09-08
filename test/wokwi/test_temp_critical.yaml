@@ -1,0 +1,12 @@
+name: Test Temperature Critical
+version: 1
+author: Environmental Monitoring Team
+
+steps:
+  - wait-serial: 'Status: Successfully Initialized'
+  - set-control:
+      part-id: ntc
+      control: temperature
+      value: 38
+  - wait-serial: '(CRITICAL)'
+  - wait-serial: 'Buzzer: ACTIVE!'

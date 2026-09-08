@@ -1,0 +1,12 @@
+name: Test Darkness Alarm Condition
+version: 1
+author: Environmental Monitoring Team
+
+steps:
+  - wait-serial: 'Status: Successfully Initialized'
+  - set-control:
+      part-id: ldr
+      control: lux
+      value: 50
+  - wait-serial: '(DARK)'
+  - wait-serial: 'Buzzer: ACTIVE!'

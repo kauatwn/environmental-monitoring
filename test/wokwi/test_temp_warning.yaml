@@ -1,0 +1,12 @@
+name: Test Temperature Warning
+version: 1
+author: Environmental Monitoring Team
+
+steps:
+  - wait-serial: 'Status: Successfully Initialized'
+  - set-control:
+      part-id: ntc
+      control: temperature
+      value: 30
+  - wait-serial: '(WARNING)'
+  - wait-serial: 'Buzzer: Inactive'

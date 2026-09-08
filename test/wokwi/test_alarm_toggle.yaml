@@ -1,0 +1,23 @@
+name: Test Alarm Button Mute Toggle
+version: 1
+author: Environmental Monitoring Team
+
+steps:
+  - wait-serial: 'Status: Successfully Initialized'
+  - set-control:
+      part-id: ntc
+      control: temperature
+      value: 38
+  - wait-serial: 'Buzzer: ACTIVE!'
+  - delay: 100ms
+  - set-control:
+      part-id: btn
+      control: pressed
+      value: 1
+  - delay: 100ms
+  - set-control:
+      part-id: btn
+      control: pressed
+      value: 0
+  - wait-serial: 'Acoustic Alarm DISABLED (MUTED)'
+  - wait-serial: 'Alarm: MUTED | Buzzer: Inactive'
