@@ -89,6 +89,8 @@ jobs:
     permissions:
       contents: read
     needs: [format, analysis]
+    outputs:
+      has-wokwi-token: ${{ steps.check-token.outputs.has-token }}
 
     steps:
       - name: "Checkout code 🛎️"
@@ -135,6 +137,17 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: "Check Wokwi Token Presence 🔑"
+        id: check-token
+        env:
+          WOKWI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
+        run: |
+          if [ -n "$WOKWI_TOKEN" ]; then
+            echo "has-token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-token=false" >> "$GITHUB_OUTPUT"
+          fi
+
   wokwi-simulation:
     name: "Wokwi Simulation Tests (${{ matrix.name }})"
     runs-on: ubuntu-24.04
@@ -142,7 +155,7 @@ jobs:
     permissions:
       contents: read
     needs: [build]
-    if: ${{ secrets.WOKWI_CLI_TOKEN != '' }}
+    if: needs.build.outputs.has-wokwi-token == 'true'
 
     strategy:
       fail-fast: false
