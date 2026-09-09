@@ -6,7 +6,7 @@ O projeto consiste em um firmware desenvolvido em C++ para o Arduino Uno, destin
 
 ## 2. Arquitetura de Software e Hardware
 
-O código foi estruturado utilizando o paradigma de Orientação a Objetos (classes), garantindo alta modularidade. Um grande diferencial deste projeto é a implementação da abstração de hardware por meio de constantes de configuração, permitindo flexibilidade na montagem física:
+O código foi estruturado de forma procedural e modular em C++, decomposto em funções especializadas com responsabilidade única, evitando complexidade desnecessária e classes redundantes, em plena conformidade com as diretrizes acadêmicas. Um grande diferencial deste projeto é a implementação da abstração de hardware por meio de constantes de configuração, permitindo flexibilidade na montagem física:
 
 - **Sensor de Temperatura:** O sistema foi configurado para interpretar os dados do sensor linear TMP36 nativo do Tinkercad, desativando temporariamente a lógica do termistor NTC.
 - **Sensor de Luminosidade:** A aquisição de luz é feita via LDR configurado em um circuito divisor de tensão do tipo _Pull-Down_, utilizando um resistor de **10 kΩ** aterrado, devidamente mapeado no código-fonte.
