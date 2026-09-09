@@ -10,7 +10,7 @@ Este repositório contém a solução desenvolvida para a **atividade prática p
 - Leitura de entradas analógicas (LDR e Sensor de Temperatura) e digitais (Botão).
 - Uso prático de estruturas de decisão (`if/else`) e operadores lógicos (`&&` e `||`).
 - Gerenciamento de estados através de variáveis booleanas nativas.
-- Modularização do código-fonte em funções/classes organizadas para estruturar o programa.
+- Modularização do código-fonte em funções bem definidas e de responsabilidade única para estruturar o programa.
 - Exibição contínua de telemetria no Monitor Serial a 9600 bps.
 - **Desafio Técnico:** Implementação de modulação por largura de pulso (PWM) usando `analogWrite()` para controle de brilho gradativo no LED vermelho conforme a temperatura se aproxima da condição crítica.
 
