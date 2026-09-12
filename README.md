@@ -32,6 +32,7 @@ A classificação das grandezas lidas pelos sensores rege o comportamento dos at
 | **Crítico (Acima de 35°C)**      | Qualquer         | Desligado      | Desligado        | **Brilho Máximo (100%)**   | **ATIVO** (se habilitado) |
 | Qualquer                         | **Escura**       | Conforme temp. | Conforme temp.   | Conforme temp.             | **ATIVO** (se habilitado) |
 
+> [!NOTE]
 > **Controle Manual do Operador (Silenciador / Mute):** Através da entrada digital ligada a um botão (_pushbutton_ no pino D7), o usuário pode habilitar ou desabilitar o alarme sonoro a qualquer momento, sem desligar os LEDs de alerta. Cada pressionamento inverte o estado da variável booleana de controle do buzzer, permitindo silenciar o ruído enquanto a equipe atua na resolução do problema físico. O botão conta com filtro de repique mecânico (_debounce_) via software e comuta o buzzer instantaneamente, sem travar o processamento da telemetria.
 
 ## 3. O Desafio Técnico: Sinalização Visual Dinâmica (PWM)
@@ -60,6 +61,14 @@ O circuito foi projetado para o **Arduino Uno R3**, mantendo o mesmo mapeamento 
 | **LED Vermelho**        | `D6 (~)`     | Saída PWM         | Aproximação e Crítico ($>30^\circ\text{C}$)       | Resistor limitador de 220 Ω no cátodo    | Resistor limitador de 220 Ω no cátodo |
 | **Pushbutton**          | `D7`         | Entrada Digital   | Silenciador do Alarme (Mute)                      | Conectado entre o pino D7 e o GND        | Conectado entre o pino D7 e o GND     |
 | **Buzzer Piezo.**       | `D8`         | Saída Digital     | Alerta Sonoro (1000 Hz)                           | Positivo no pino D8, Negativo no GND     | Positivo no pino D8, Negativo no GND  |
+
+### 4.1. Diagrama do Circuito no Tinkercad
+
+Abaixo está a montagem física na protoboard desenvolvida no Autodesk Tinkercad, demonstrando o divisor de tensão Pull-Down do LDR e as ligações dos atuadores:
+
+![Circuito Montado no Tinkercad](assets/tinkercad/tinkercad_circuit.png)
+
+> **Dica:** O diagrama esquemático elétrico completo também pode ser consultado no [Relatório Técnico](docs/technical-report.md).
 
 ## 5. Portabilidade e Abstração de Hardware (Tinkercad vs. Wokwi)
 
