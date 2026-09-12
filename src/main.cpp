@@ -28,8 +28,8 @@
 
 // Seleção da plataforma de simulação (Tinkercad vs. Wokwi)
 // Descomente apenas UMA das opções abaixo:
-// #define SIMULATOR_TINKERCAD  // Ativa: Sensor TMP36 + LDR em modo Pull-Down (Padrão no Tinkercad)
-#define SIMULATOR_WOKWI      // Ativa: Sensor NTC + LDR em modo Pull-Up (Padrão no Wokwi)
+#define SIMULATOR_TINKERCAD  // Ativa: Sensor TMP36 + LDR em modo Pull-Down (Padrão no Tinkercad)
+// #define SIMULATOR_WOKWI      // Ativa: Sensor NTC + LDR em modo Pull-Up (Padrão no Wokwi)
 
 // Configurações dos sensores e compatibilidade de hardware via pré-processador para o Tinkercad:
 #ifdef SIMULATOR_TINKERCAD
