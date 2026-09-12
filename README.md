@@ -68,7 +68,8 @@ Abaixo está a montagem física na protoboard desenvolvida no Autodesk Tinkercad
 
 ![Circuito Montado no Tinkercad](assets/tinkercad/tinkercad_circuit.png)
 
-> **Dica:** O diagrama esquemático elétrico completo também pode ser consultado no [Relatório Técnico](docs/technical-report.md).
+> [!TIP]
+> O diagrama esquemático elétrico completo também pode ser consultado no [Relatório Técnico](docs/technical-report.md).
 
 ## 5. Portabilidade e Abstração de Hardware (Tinkercad vs. Wokwi)
 
