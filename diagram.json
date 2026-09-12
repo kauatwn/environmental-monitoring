@@ -6,116 +6,116 @@
     {
       "type": "wokwi-arduino-uno",
       "id": "uno",
-      "top": 120,
-      "left": 40,
+      "top": 183,
+      "left": 37.8,
       "attrs": {}
     },
     {
       "type": "wokwi-breadboard-half",
       "id": "bb1",
-      "top": 120,
-      "left": 380,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-led",
-      "id": "led_verde",
-      "top": 40,
-      "left": 410,
-      "attrs": { "color": "green" }
-    },
-    {
-      "type": "wokwi-led",
-      "id": "led_amarelo",
-      "top": 40,
-      "left": 460,
-      "attrs": { "color": "yellow" }
-    },
-    {
-      "type": "wokwi-led",
-      "id": "led_vermelho",
-      "top": 40,
-      "left": 510,
-      "attrs": { "color": "red" }
-    },
-    {
-      "type": "wokwi-resistor",
-      "id": "r_verde",
-      "top": 190,
-      "left": 410,
-      "attrs": { "value": "220" }
-    },
-    {
-      "type": "wokwi-resistor",
-      "id": "r_amarelo",
-      "top": 190,
-      "left": 460,
-      "attrs": { "value": "220" }
-    },
-    {
-      "type": "wokwi-resistor",
-      "id": "r_vermelho",
-      "top": 190,
-      "left": 510,
-      "attrs": { "value": "220" }
-    },
-    {
-      "type": "wokwi-photoresistor-sensor",
-      "id": "ldr",
-      "top": 30,
-      "left": 580,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-ntc-temperature-sensor",
-      "id": "ntc",
-      "top": 30,
-      "left": 670,
+      "top": 179.4,
+      "left": 377.2,
       "attrs": {}
     },
     {
       "type": "wokwi-pushbutton",
       "id": "btn",
-      "top": 270,
-      "left": 430,
-      "attrs": { "color": "blue" }
+      "top": 249.5,
+      "left": 406.7,
+      "rotate": 90,
+      "attrs": { "color": "black", "bounce": "0" }
     },
     {
-      "type": "wokwi-buzzer",
-      "id": "bz1",
-      "top": 270,
-      "left": 530,
+      "type": "wokwi-led",
+      "id": "led_verde",
+      "top": 92.4,
+      "left": 464.6,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_amarelo",
+      "top": 92.4,
+      "left": 541.4,
+      "attrs": { "color": "yellow" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_vermelho",
+      "top": 92.4,
+      "left": 589.4,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_verde",
+      "top": 349.4,
+      "left": 462.2,
+      "rotate": 90,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_amarelo",
+      "top": 349.4,
+      "left": 537.2,
+      "rotate": 90,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_vermelho",
+      "top": 350.4,
+      "left": 585.05,
+      "rotate": 90,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-photoresistor-sensor",
+      "id": "ldr",
+      "top": -6.4,
+      "left": 346.4,
       "attrs": {}
-    }
+    },
+    {
+      "type": "wokwi-ntc-temperature-sensor",
+      "id": "ntc",
+      "top": 21.8,
+      "left": 623.4,
+      "attrs": {}
+    },
+    { "type": "wokwi-buzzer", "id": "bz1", "top": 20, "left": 800, "attrs": {} }
   ],
   "connections": [
-    ["uno:5V", "bb1:bp.1", "red", ["v0"]],
-    ["uno:GND.1", "bb1:bn.1", "black", ["v0"]],
-
-    ["uno:2", "led_verde:A", "green", ["v-30", "h120"]],
+    ["uno:5V", "bb1:bp.1", "red", ["v22.1", "h164.8", "v-27.9"]],
+    ["uno:2", "led_verde:A", "green", ["v-20", "h120"]],
     ["led_verde:C", "r_verde:1", "green", ["v0"]],
-    ["r_verde:2", "bb1:bn.3", "black", ["v0"]],
-
-    ["uno:4", "led_amarelo:A", "gold", ["v-40", "h180"]],
-    ["led_amarelo:C", "r_amarelo:1", "gold", ["v0"]],
-    ["r_amarelo:2", "bb1:bn.8", "black", ["v0"]],
-
-    ["uno:6", "led_vermelho:A", "red", ["v-50", "h240"]],
+    ["uno:4", "led_amarelo:A", "yellow", ["v-30", "h210"]],
+    ["led_amarelo:C", "r_amarelo:1", "yellow", ["v0"]],
+    ["uno:6", "led_vermelho:A", "red", ["v-40", "h280"]],
     ["led_vermelho:C", "r_vermelho:1", "red", ["v0"]],
-    ["r_vermelho:2", "bb1:bn.13", "black", ["v0"]],
-
-    ["bb1:bp.18", "ldr:VCC", "red", ["v0"]],
-    ["uno:A0", "ldr:AO", "orange", ["v40", "h-220"]],
-    ["bb1:bn.18", "ldr:GND", "black", ["v0"]],
-
-    ["bb1:bp.24", "ntc:VCC", "red", ["v0"]],
-    ["uno:A1", "ntc:OUT", "purple", ["v50", "h-330"]],
-    ["bb1:bn.24", "ntc:GND", "black", ["v0"]],
-
-    ["uno:7", "btn:1.r", "blue", ["v30", "h-220"]],
-    ["bb1:bn.5", "btn:2.r", "black", ["v0"]],
-
-    ["uno:8", "bz1:2", "magenta", ["v40", "h-320"]],
-    ["bb1:bn.20", "bz1:1", "black", ["v0"]]
-  ]
+    ["uno:8", "bz1:2", "red", ["v-50", "h500"]],
+    ["bz1:1", "bb1:bn.30", "black", ["v180", "h-20"]],
+    ["bb1:bp.12", "ldr:VCC", "red", ["v0"]],
+    ["uno:A0", "ldr:AO", "black", ["v-16.3", "h394"]],
+    ["bb1:bn.12", "ldr:GND", "black", ["h-8", "v-356.1"]],
+    ["bb1:bp.25", "ntc:VCC", "red", ["h88", "v-308.1"]],
+    ["bb1:bn.25", "ntc:GND", "black", ["h97.6", "v-329.5"]],
+    ["uno:GND.3", "bb1:bn.1", "black", ["v12.5", "h184.2", "v-9.6"]],
+    ["uno:A1", "ntc:OUT", "yellow", ["v31.7", "h529.7", "v-288", "v-49.7"]],
+    ["r_verde:2", "bb1:bn.7", "black", ["h0"]],
+    ["r_amarelo:2", "bb1:bn.14", "black", ["h0"]],
+    ["r_vermelho:2", "bb1:bn.18", "black", ["h0"]],
+    ["uno:GND.2", "bz1:1", "black", ["v19.1", "h618.3"]],
+    ["r_verde:1", "bb1:10b.i", "", ["$bb"]],
+    ["r_amarelo:1", "bb1:18b.i", "", ["$bb"]],
+    ["r_vermelho:1", "bb1:23b.i", "", ["$bb"]],
+    ["btn:1.l", "bb1:6t.b", "", ["$bb"]],
+    ["btn:2.l", "bb1:4t.b", "", ["$bb"]],
+    ["btn:1.r", "bb1:6b.g", "", ["$bb"]],
+    ["btn:2.r", "bb1:4b.g", "", ["$bb"]],
+    ["btn:2.r", "uno:7", "cyan", ["v9.8", "h-105.8", "v-105.6", "h-96"]],
+    ["uno:GND.1", "btn:1.l", "black", ["v9.6", "h297.9"]]
+  ],
+  "dependencies": {}
 }
