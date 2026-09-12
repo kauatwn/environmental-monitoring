@@ -32,3 +32,17 @@ O alarme acústico atua como um sistema de falha dupla, sendo disparado caso a t
 
 - Foi adicionada uma interface de silenciador via botão _pushbutton_ conectado ao pino 7.
 - Para evitar disparos indesejados, o botão utiliza a resistência de elevação interna (`INPUT_PULLUP`) e passa por um filtro de ruído mecânico (_debounce_) temporizado implementado inteiramente via software.
+
+## 5. Diagramas do Circuito (Hardware)
+
+Para garantir a reprodutibilidade do projeto e o entendimento do fluxo elétrico, abaixo são apresentados os diagramas físico e lógico da montagem padrão (Tinkercad).
+
+### 5.1. Diagrama Esquemático (Lógico/Elétrico)
+
+Este diagrama ilustra o fluxo de corrente, detalhando o circuito do LDR como um divisor de tensão do tipo Pull-Down e a ligação direta do sensor TMP36.
+![Diagrama Esquemático](../assets/tinkercad/circuit_schematic.png)
+
+### 5.2. Montagem Física (Protoboard)
+
+A representação física mostra o mapeamento real dos componentes na bancada de testes virtuais.
+![Montagem do Circuito](../assets/tinkercad/tinkercad_circuit.png)
