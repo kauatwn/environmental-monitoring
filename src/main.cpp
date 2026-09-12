@@ -170,6 +170,12 @@ static const char* get_luminosity_label(const int raw_adc) {
 
 // Interpolação linear do brilho do LED vermelho via PWM na faixa de aproximação crítica (30 °C a 35 °C)
 static int calculate_pwm_duty(const float temp_c) {
+  if (temp_c <= temp_threshold_approach) {
+    return 0;
+  }
+  if (temp_c >= temp_threshold_critical) {
+    return pwm_max_duty;
+  }
 
   const float ratio = (temp_c - temp_threshold_approach) / (temp_threshold_critical - temp_threshold_approach);
   constexpr auto pwm_range = static_cast<float>(pwm_max_duty - pwm_min_duty);
