@@ -17,8 +17,7 @@
  *    - A condição escura indica falha de iluminação ou acesso irregular à sala, gerando condição de alarme.
  * 3. Alarme Sonoro (Buzzer):
  *    - Disparado se a temperatura for superior a 35.0 °C OU se o ambiente estiver no escuro.
- *    - O botão permite ao operador habilitar ou desabilitar o alarme sonoro
- * (função silenciador).
+ *    - O botão permite ao operador habilitar ou desabilitar o alarme sonoro (função silenciador).
  * 4. Compatibilidade:
  *    - Suporte transparente aos simuladores Wokwi e Tinkercad, com opções para NTC ou TMP36 e circuitos divisores de
  * tensão em modo Pull-Up ou Pull-Down para o LDR.
@@ -317,22 +316,27 @@ void setup() {
 void loop() {
   const unsigned long current_ms = millis();
 
+  // Processamento contínuo do botão de silenciamento (debounce não-bloqueante)
   process_silence_button();
 
-  if (!telemetry_started || current_ms - last_telemetry_ms >= telemetry_interval_ms) {
-    telemetry_started = true;
+  // Amostragem em tempo real dos sensores físicos
+  const float temp_c = read_temperature_celsius();
+  const int raw_ldr = read_luminosity_adc();
+
+  // Atualização imediata da sinalização visual (LEDs Verde, Amarelo e Vermelho com PWM)
+  update_visual_signaling(temp_c);
+
+  // Avaliação contínua das regras de disparo do alarme acústico (Temp > 35°C OU Escuro)
+  const bool is_dark = is_dark_condition(raw_ldr);
+  const bool alarm_condition = temp_c > temp_threshold_critical || is_dark;
+  const bool buzzer_active = alarm_condition && buzzer_enabled;
+
+  // Atualização imediata do alarme sonoro (sem atraso)
+  control_acoustic_alarm(buzzer_active);
+
+  // Transmissão periódica da telemetria serial a cada 1 segundo (1000 ms)
+  if (current_ms - last_telemetry_ms >= telemetry_interval_ms) {
     last_telemetry_ms = current_ms;
-
-    const float temp_c = read_temperature_celsius();
-    const int raw_ldr = read_luminosity_adc();
-    const bool is_dark = is_dark_condition(raw_ldr);
-
-    update_visual_signaling(temp_c);
-
-    const bool alarm_condition = (temp_c > temp_threshold_critical) || is_dark;
-    const bool buzzer_active = alarm_condition && buzzer_enabled;
-    control_acoustic_alarm(buzzer_active);
-
     transmit_telemetry(temp_c, buzzer_active, raw_ldr);
   }
 }
