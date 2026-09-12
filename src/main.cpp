@@ -28,8 +28,8 @@
 
 // Seleção da plataforma de simulação (Tinkercad vs. Wokwi)
 // Descomente apenas UMA das opções abaixo:
-#define SIMULATOR_TINKERCAD  // Ativa: Sensor TMP36 + LDR em modo Pull-Down (Padrão no Tinkercad)
-// #define SIMULATOR_WOKWI      // Ativa: Sensor NTC + LDR em modo Pull-Up (Padrão no Wokwi)
+// #define SIMULATOR_TINKERCAD  // Ativa: Sensor TMP36 + LDR em modo Pull-Down (Padrão no Tinkercad)
+#define SIMULATOR_WOKWI      // Ativa: Sensor NTC + LDR em modo Pull-Up (Padrão no Wokwi)
 
 // Configurações dos sensores e compatibilidade de hardware via pré-processador para o Tinkercad:
 #ifdef SIMULATOR_TINKERCAD
@@ -98,7 +98,6 @@ static int last_button_reading = HIGH;
 static int stable_button_state = HIGH;
 static unsigned long last_button_change_ms = 0;
 static unsigned long last_telemetry_ms = 0;
-static bool telemetry_started = false;
 
 // Leitura da temperatura e conversão para Celsius conforme o sensor configurado
 static float read_temperature_celsius() {
