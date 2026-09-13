@@ -145,25 +145,23 @@ static bool is_dark_condition(const int raw_adc) {
   return raw_adc < light_threshold_dark;
 }
 
-// Classifica o nível de luminosidade em texto
-static const char* get_luminosity_label(const int raw_adc) {
+// Avalia se a leitura de luminosidade caracteriza ambiente claro conforme o divisor adotado
+static bool is_clear_condition(const int raw_adc) {
   if (ldr_pullup_mode) {
-    if (raw_adc > light_threshold_dark) {
-      return "ESCURA";
-    }
-    if (raw_adc < light_threshold_clear) {
-      return "CLARA";
-    }
-    return "MODERADA";
+    return raw_adc < light_threshold_clear;
   }
+  return raw_adc > light_threshold_clear;
+}
 
-  if (raw_adc < light_threshold_dark) {
-    return "ESCURA";
+// Classifica o nível de luminosidade em texto
+static const __FlashStringHelper* get_luminosity_label(const int raw_adc) {
+  if (is_dark_condition(raw_adc)) {
+    return F("ESCURA");
   }
-  if (raw_adc > light_threshold_clear) {
-    return "CLARA";
+  if (is_clear_condition(raw_adc)) {
+    return F("CLARA");
   }
-  return "MODERADA";
+  return F("MODERADA");
 }
 
 // Interpolação linear do brilho do LED vermelho via PWM na faixa de aproximação crítica (30 °C a 35 °C)
@@ -230,8 +228,13 @@ static void control_acoustic_alarm(const bool activate) {
   noTone(pin_buzzer);
 }
 
-// Filtro de repique mecânico (debounce de 50 ms) e alternância do silenciador do alarme sonoro
-static void process_silence_button() {
+// Avalia se as condições operacionais caracterizam disparo de alarme (temperatura crítica ou ambiente escuro)
+static bool is_alarm_triggered(const float temp_c, const bool is_dark) {
+  return temp_c > temp_threshold_critical || is_dark;
+}
+
+// Filtro de repique mecânico (debounce de 50 ms); detecta exclusivamente o evento de clique (borda de descida)
+static bool is_button_pressed() {
   const unsigned long current_ms = millis();
   const int current_reading = digitalRead(pin_button);
 
@@ -241,37 +244,45 @@ static void process_silence_button() {
   }
 
   if (current_ms - last_button_change_ms <= debounce_delay_ms) {
-    return;
+    return false;
   }
 
   if (current_reading == stable_button_state) {
-    return;
+    return false;
   }
 
   stable_button_state = current_reading;
+  return stable_button_state == LOW;
+}
 
-  // Borda de descida (botão pressionado no pino com pull-up interno)
-  if (stable_button_state == LOW) {
+// Notifica na porta serial a alteração do estado do silenciador do alarme
+static void notify_buzzer_toggle(const bool enabled) {
+  Serial.println();
+  Serial.print(F(">>> [INTERFACE DO USUARIO] Alarme Sonoro "));
+  Serial.println(enabled ? F("HABILITADO <<<") : F("DESABILITADO (SILENCIADO) <<<"));
+  Serial.println();
+}
+
+// Processa a interação do usuário com o botão de alternância do alarme sonoro
+static void handle_user_input() {
+  if (is_button_pressed()) {
     buzzer_enabled = !buzzer_enabled;
-    Serial.println();
-    Serial.print(F(">>> [INTERFACE DO USUARIO] Alarme Sonoro "));
-    Serial.println(buzzer_enabled ? F("HABILITADO <<<") : F("DESABILITADO (SILENCIADO) <<<"));
-    Serial.println();
+    notify_buzzer_toggle(buzzer_enabled);
   }
 }
 
 // Retorna o rótulo textual da faixa de temperatura para a telemetria serial
-static const char* get_temperature_label(const float temp_c) {
+static const __FlashStringHelper* get_temperature_label(const float temp_c) {
   if (temp_c <= temp_threshold_normal) {
-    return "NORMAL";
+    return F("NORMAL");
   }
   if (temp_c <= temp_threshold_approach) {
-    return "ATENCAO";
+    return F("ATENCAO");
   }
   if (temp_c <= temp_threshold_critical) {
-    return "ATENCAO - APROX. CRITICA PWM";
+    return F("ATENCAO - APROX. CRITICA PWM");
   }
-  return "CRITICO";
+  return F("CRITICO");
 }
 
 // Transmissão periódica das informações pela porta serial
@@ -315,8 +326,8 @@ void setup() {
 void loop() {
   const unsigned long current_ms = millis();
 
-  // Processamento contínuo do botão de silenciamento (debounce não-bloqueante)
-  process_silence_button();
+  // Processamento contínuo da interface do usuário (botão com debounce)
+  handle_user_input();
 
   // Amostragem em tempo real dos sensores físicos
   const float temp_c = read_temperature_celsius();
@@ -325,9 +336,9 @@ void loop() {
   // Atualização imediata da sinalização visual (LEDs Verde, Amarelo e Vermelho com PWM)
   update_visual_signaling(temp_c);
 
-  // Avaliação contínua das regras de disparo do alarme acústico (Temp > 35°C OU Escuro)
+  // Avaliação contínua das regras operacionais do alarme acústico
   const bool is_dark = is_dark_condition(raw_ldr);
-  const bool alarm_condition = temp_c > temp_threshold_critical || is_dark;
+  const bool alarm_condition = is_alarm_triggered(temp_c, is_dark);
   const bool buzzer_active = alarm_condition && buzzer_enabled;
 
   // Atualização imediata do alarme sonoro (sem atraso)
