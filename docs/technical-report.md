@@ -40,7 +40,7 @@ Para garantir a reprodutibilidade do projeto e o entendimento do fluxo elétrico
 ### 5.1. Diagrama Esquemático (Lógico/Elétrico)
 
 Este diagrama ilustra o fluxo de corrente, detalhando o circuito do LDR como um divisor de tensão do tipo Pull-Down e a ligação direta do sensor TMP36.
-![Diagrama Esquemático](../assets/tinkercad/circuit_schematic.png)
+![Diagrama Esquemático](../assets/tinkercad/circuit_schematic.svg)
 
 ### 5.2. Montagem Física (Protoboard)
 
