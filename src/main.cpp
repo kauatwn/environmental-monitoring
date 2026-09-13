@@ -72,11 +72,23 @@ constexpr uint8_t pin_led_yellow = 4;  // Saída digital: LED amarelo (estado de
 constexpr uint8_t pin_led_red = 6;     // Saída PWM: LED vermelho (aproximação crítica e alerta)
 constexpr uint8_t pin_buzzer = 8;      // Saída digital: buzzer piezoelétrico
 
+// Parâmetros do conversor analógico-digital (ADC do ATmega328P de 10 bits):
+constexpr float vref_voltage = 5.0F;              // Tensão de referência do ADC (5.0 V)
+constexpr float adc_resolution_counts = 1024.0F;  // Resolução de 10 bits (2^10 = 1024 níveis)
+constexpr int adc_raw_min = 0;                    // Leitura mínima do ADC
+constexpr int adc_raw_max = 1023;                 // Leitura máxima do ADC (1023)
+
+// Parâmetros do sensor de temperatura linear TMP36:
+constexpr float tmp36_offset_voltage = 0.5F;  // Tensão de offset a 0 °C (500 mV)
+constexpr float tmp36_scale_factor = 100.0F;  // Fator de escala inverso: 10 mV/°C -> 100 °C/V
+
 // Parâmetros do termistor NTC para a Equação de Steinhart-Hart / Parâmetro Beta (B3950):
 // R0 = 10 kOhm a 25 °C (298.15 K)
 constexpr float ntc_beta = 3950.0F;
 constexpr float ntc_t0_kelvin = 298.15F;
 constexpr float absolute_zero_celsius = 273.15F;
+constexpr float ntc_max_temp_c = 125.0F;  // Limite físico de saturação do NTC (curto-circuito)
+constexpr float ntc_min_temp_c = -40.0F;  // Limite físico de saturação do NTC (circuito aberto)
 
 // Limiares operacionais de temperatura (°C)
 constexpr float temp_threshold_normal = 25.0F;    // Normal: <= 25.0 °C
@@ -84,18 +96,21 @@ constexpr float temp_threshold_approach = 30.0F;  // Atenção intermediária: 2
 constexpr float temp_threshold_critical = 35.0F;  // Aproximação e crítico: > 30.0 °C e > 35.0 °C
 
 // Limites do PWM para o LED vermelho durante a aproximação crítica (30.0 °C a 35.0 °C)
-constexpr int pwm_min_duty = 30;   // Valor mínimo para garantir condução e visibilidade do LED
-constexpr int pwm_max_duty = 255;  // Ciclo de trabalho máximo (100% de brilho)
+constexpr uint8_t pwm_off = 0;         // PWM desligado (0% de duty cycle)
+constexpr uint8_t pwm_min_duty = 30;   // Valor mínimo para garantir condução e visibilidade do LED
+constexpr uint8_t pwm_max_duty = 255;  // Ciclo de trabalho máximo (100% de brilho)
 
-// Temporizações e parâmetros acústicos
+// Temporizações, parâmetros acústicos e comunicação serial
+constexpr unsigned long serial_baud_rate = 9600;       // Velocidade da porta serial (9600 bps)
 constexpr unsigned long telemetry_interval_ms = 1000;  // Intervalo de transmissão serial (1 segundo)
 constexpr unsigned long debounce_delay_ms = 50;        // Janela de estabilização do botão (50 ms)
 constexpr unsigned int buzzer_frequency_hz = 1000;     // Frequência do som de alerta no buzzer (Hz)
+constexpr uint8_t telemetry_temp_decimals = 1;         // Casas decimais da temperatura na telemetria
 
 // Variáveis de estado global do sistema
 static bool buzzer_enabled = true;
-static int last_button_reading = HIGH;
-static int stable_button_state = HIGH;
+static uint8_t last_button_reading = HIGH;
+static uint8_t stable_button_state = HIGH;
 static unsigned long last_button_change_ms = 0;
 static unsigned long last_telemetry_ms = 0;
 
@@ -107,24 +122,24 @@ static float read_temperature_celsius() {
   // Tensão (V) = ADC * (5.0 / 1024.0)
   // Temperatura (°C) = (Tensão - 0.5) * 100.0
   if (!use_ntc_sensor) {
-    constexpr float adc_to_voltage = 5.0F / 1024.0F;
+    constexpr float adc_to_voltage = vref_voltage / adc_resolution_counts;
     const float voltage_v = static_cast<float>(raw_adc) * adc_to_voltage;
-    return (voltage_v - 0.5F) * 100.0F;
+    return (voltage_v - tmp36_offset_voltage) * tmp36_scale_factor;
   }
 
   // Tratamento de limites físicos do termistor NTC (evita saturação e divisões por zero)
-  if (raw_adc <= 0) {
-    return 125.0F;
+  if (raw_adc <= adc_raw_min) {
+    return ntc_max_temp_c;
   }
-  if (raw_adc >= 1023) {
-    return -40.0F;
+  if (raw_adc >= adc_raw_max) {
+    return ntc_min_temp_c;
   }
 
   // Conversão via Equação do Parâmetro Beta (Steinhart-Hart simplificada)
-  const float raw_ratio = 1023.0F / static_cast<float>(raw_adc);
+  const float raw_ratio = static_cast<float>(adc_raw_max) / static_cast<float>(raw_adc);
   const float adc_ratio = 1.0F / (raw_ratio - 1.0F);
   if (adc_ratio <= 0.0F) {
-    return 125.0F;
+    return ntc_max_temp_c;
   }
 
   const float log_ratio = logf(adc_ratio);
@@ -165,9 +180,9 @@ static const __FlashStringHelper* get_luminosity_label(const int raw_adc) {
 }
 
 // Interpolação linear do brilho do LED vermelho via PWM na faixa de aproximação crítica (30 °C a 35 °C)
-static int calculate_pwm_duty(const float temp_c) {
+static uint8_t calculate_pwm_duty(const float temp_c) {
   if (temp_c <= temp_threshold_approach) {
-    return 0;
+    return pwm_off;
   }
   if (temp_c >= temp_threshold_critical) {
     return pwm_max_duty;
@@ -178,13 +193,13 @@ static int calculate_pwm_duty(const float temp_c) {
   const float calculated = static_cast<float>(pwm_min_duty) + ratio * pwm_range;
   const int duty = static_cast<int>(calculated);
 
-  if (duty < 0) {
-    return 0;
+  if (duty < pwm_min_duty) {
+    return pwm_min_duty;
   }
-  if (duty > 255) {
-    return 255;
+  if (duty > pwm_max_duty) {
+    return pwm_max_duty;
   }
-  return duty;
+  return static_cast<uint8_t>(duty);
 }
 
 // Atualização das saídas digitais e PWM dos LEDs de sinalização visual
@@ -193,7 +208,7 @@ static void update_visual_signaling(const float temp_c) {
   if (temp_c <= temp_threshold_normal) {
     digitalWrite(pin_led_green, HIGH);
     digitalWrite(pin_led_yellow, LOW);
-    analogWrite(pin_led_red, 0);
+    analogWrite(pin_led_red, pwm_off);
     return;
   }
 
@@ -201,7 +216,7 @@ static void update_visual_signaling(const float temp_c) {
   if (temp_c <= temp_threshold_approach) {
     digitalWrite(pin_led_green, LOW);
     digitalWrite(pin_led_yellow, HIGH);
-    analogWrite(pin_led_red, 0);
+    analogWrite(pin_led_red, pwm_off);
     return;
   }
 
@@ -236,7 +251,7 @@ static bool is_alarm_triggered(const float temp_c, const bool is_dark) {
 // Filtro de repique mecânico (debounce de 50 ms); detecta exclusivamente o evento de clique (borda de descida)
 static bool is_button_pressed() {
   const unsigned long current_ms = millis();
-  const int current_reading = digitalRead(pin_button);
+  const auto current_reading = static_cast<uint8_t>(digitalRead(pin_button));
 
   if (current_reading != last_button_reading) {
     last_button_change_ms = current_ms;
@@ -288,7 +303,7 @@ static const __FlashStringHelper* get_temperature_label(const float temp_c) {
 // Transmissão periódica das informações pela porta serial
 static void transmit_telemetry(const float temp_c, const bool buzzer_active, const int raw_ldr) {
   Serial.print(F("[TELEMETRIA] Temp: "));
-  Serial.print(temp_c, 1);
+  Serial.print(temp_c, telemetry_temp_decimals);
   Serial.print(F(" C ("));
   Serial.print(get_temperature_label(temp_c));
 
@@ -305,7 +320,7 @@ static void transmit_telemetry(const float temp_c, const bool buzzer_active, con
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(serial_baud_rate);
   Serial.println(F("=================================================="));
   Serial.println(F(" SISTEMA DE MONITORAMENTO AMBIENTAL - ARDUINO UNO"));
   Serial.println(F(" Status: Inicializado com Sucesso                "));
@@ -319,7 +334,7 @@ void setup() {
 
   digitalWrite(pin_led_green, LOW);
   digitalWrite(pin_led_yellow, LOW);
-  analogWrite(pin_led_red, 0);
+  analogWrite(pin_led_red, pwm_off);
   noTone(pin_buzzer);
 }
 
