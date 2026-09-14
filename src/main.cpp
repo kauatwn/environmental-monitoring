@@ -63,6 +63,7 @@ constexpr int light_threshold_clear = 300;  // Leitura analógica < 300 indica a
 #error "Defina SIMULATOR_TINKERCAD ou SIMULATOR_WOKWI no início do código!"
 #endif
 
+namespace {
 // Mapeamento de pinos do hardware
 constexpr uint8_t pin_ldr = A0;        // Entrada analógica: sensor de luz (LDR)
 constexpr uint8_t pin_temp = A1;       // Entrada analógica: sensor de temperatura (TMP36 ou NTC)
@@ -107,7 +108,6 @@ constexpr unsigned long debounce_delay_ms = 50;        // Janela de estabilizaç
 constexpr unsigned int buzzer_frequency_hz = 1000;     // Frequência do som de alerta no buzzer (Hz)
 constexpr uint8_t telemetry_temp_decimals = 1;         // Casas decimais da temperatura na telemetria
 
-namespace {
 // Classificação operacional das faixas de temperatura
 enum class TemperatureStatus : uint8_t {
   Normal,            // Até 25.0 °C: operacao normal (LED verde)
