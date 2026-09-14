@@ -107,12 +107,45 @@ constexpr unsigned long debounce_delay_ms = 50;        // Janela de estabilizaç
 constexpr unsigned int buzzer_frequency_hz = 1000;     // Frequência do som de alerta no buzzer (Hz)
 constexpr uint8_t telemetry_temp_decimals = 1;         // Casas decimais da temperatura na telemetria
 
+// Classificação operacional das faixas de temperatura
+enum class TemperatureStatus : uint8_t {
+  Normal,            // Até 25.0 °C: operacao normal (LED verde)
+  Attention,         // Acima de 25.0 °C até 30.0 °C: atencao intermediaria (LED amarelo)
+  CriticalApproach,  // Acima de 30.0 °C até 35.0 °C: aproximação crítica com PWM gradual (LED vermelho)
+  Critical,          // Acima de 35.0 °C: estado critico de superaquecimento (LED vermelho 100%)
+};
+
+// Classificação operacional dos níveis de luminosidade
+enum class LuminosityStatus : uint8_t {
+  Dark,      // Ambiente escuro (condicao de intrusao ou falha de iluminacao -> disparo de alarme)
+  Moderate,  // Iluminacao moderada (condicao intermediaria)
+  Clear,     // Ambiente claro (iluminacao adequada)
+};
+
+// Pacote agregado de telemetria para transporte e transmissão serial
+struct EnvironmentalTelemetry {
+  float temperature_c;
+  int raw_ldr;
+  TemperatureStatus temp_status;
+  LuminosityStatus light_status;
+  bool alarm_active;
+  bool buzzer_enabled;
+};
+
 // Variáveis de estado global do sistema
 static bool buzzer_enabled = true;
 static uint8_t last_button_reading = HIGH;
 static uint8_t stable_button_state = HIGH;
 static unsigned long last_button_change_ms = 0;
 static unsigned long last_telemetry_ms = 0;
+static EnvironmentalTelemetry latest_telemetry = {
+    .temperature_c = 0.0F,
+    .raw_ldr = 0,
+    .temp_status = TemperatureStatus::Normal,
+    .light_status = LuminosityStatus::Clear,
+    .alarm_active = false,
+    .buzzer_enabled = true,
+};
 
 // Leitura da temperatura e conversão para Celsius conforme o sensor configurado
 static float read_temperature_celsius() {
@@ -168,15 +201,57 @@ static bool is_clear_condition(const int raw_adc) {
   return raw_adc > light_threshold_clear;
 }
 
-// Classifica o nível de luminosidade em texto
-static const __FlashStringHelper* get_luminosity_label(const int raw_adc) {
+// Classifica o estado da temperatura
+static TemperatureStatus classify_temperature(const float temp_c) {
+  if (temp_c <= temp_threshold_normal) {
+    return TemperatureStatus::Normal;
+  }
+  if (temp_c <= temp_threshold_approach) {
+    return TemperatureStatus::Attention;
+  }
+  if (temp_c <= temp_threshold_critical) {
+    return TemperatureStatus::CriticalApproach;
+  }
+  return TemperatureStatus::Critical;
+}
+
+// Classifica o nível de luminosidade
+static LuminosityStatus classify_luminosity(const int raw_adc) {
   if (is_dark_condition(raw_adc)) {
-    return F("ESCURA");
+    return LuminosityStatus::Dark;
   }
   if (is_clear_condition(raw_adc)) {
-    return F("CLARA");
+    return LuminosityStatus::Clear;
   }
-  return F("MODERADA");
+  return LuminosityStatus::Moderate;
+}
+
+// Retorna o rótulo textual do nível de luminosidade para a telemetria serial
+static const __FlashStringHelper* get_luminosity_label(const LuminosityStatus status) {
+  switch (status) {
+    case LuminosityStatus::Dark:
+      return F("ESCURA");
+    case LuminosityStatus::Clear:
+      return F("CLARA");
+    case LuminosityStatus::Moderate:
+      return F("MODERADA");
+  }
+  return F("INDEFINIDA");
+}
+
+// Retorna o rótulo textual da faixa de temperatura para a telemetria serial
+static const __FlashStringHelper* get_temperature_label(const TemperatureStatus status) {
+  switch (status) {
+    case TemperatureStatus::Normal:
+      return F("NORMAL");
+    case TemperatureStatus::Attention:
+      return F("ATENCAO");
+    case TemperatureStatus::CriticalApproach:
+      return F("ATENCAO - APROX. CRÍTICA PWM");
+    case TemperatureStatus::Critical:
+      return F("CRITICO");
+  }
+  return F("INDEFINIDO");
 }
 
 // Interpolação linear do brilho do LED vermelho via PWM na faixa de aproximação crítica (acima de 30.0 °C até 35.0 °C)
@@ -203,35 +278,32 @@ static uint8_t calculate_pwm_duty(const float temp_c) {
 }
 
 // Atualização das saídas digitais e PWM dos LEDs de sinalização visual
-static void update_visual_signaling(const float temp_c) {
-  // Faixa normal (<= 25.0 °C): apenas LED verde aceso
-  if (temp_c <= temp_threshold_normal) {
-    digitalWrite(pin_led_green, HIGH);
-    digitalWrite(pin_led_yellow, LOW);
-    analogWrite(pin_led_red, pwm_off);
-    return;
-  }
+static void update_visual_signaling(const TemperatureStatus status, const float temp_c) {
+  switch (status) {
+    case TemperatureStatus::Normal:
+      digitalWrite(pin_led_green, HIGH);
+      digitalWrite(pin_led_yellow, LOW);
+      analogWrite(pin_led_red, pwm_off);
+      break;
 
-  // Faixa de atenção intermediária (> 25.0 °C até 30.0 °C): apenas LED amarelo aceso
-  if (temp_c <= temp_threshold_approach) {
-    digitalWrite(pin_led_green, LOW);
-    digitalWrite(pin_led_yellow, HIGH);
-    analogWrite(pin_led_red, pwm_off);
-    return;
-  }
+    case TemperatureStatus::Attention:
+      digitalWrite(pin_led_green, LOW);
+      digitalWrite(pin_led_yellow, HIGH);
+      analogWrite(pin_led_red, pwm_off);
+      break;
 
-  // Faixa de aproximação crítica (> 30.0 °C até 35.0 °C): LED vermelho com PWM gradual
-  if (temp_c <= temp_threshold_critical) {
-    digitalWrite(pin_led_green, LOW);
-    digitalWrite(pin_led_yellow, LOW);
-    analogWrite(pin_led_red, calculate_pwm_duty(temp_c));
-    return;
-  }
+    case TemperatureStatus::CriticalApproach:
+      digitalWrite(pin_led_green, LOW);
+      digitalWrite(pin_led_yellow, LOW);
+      analogWrite(pin_led_red, calculate_pwm_duty(temp_c));
+      break;
 
-  // Estado crítico (> 35.0 °C): LED vermelho em intensidade máxima (100%)
-  digitalWrite(pin_led_green, LOW);
-  digitalWrite(pin_led_yellow, LOW);
-  analogWrite(pin_led_red, pwm_max_duty);
+    case TemperatureStatus::Critical:
+      digitalWrite(pin_led_green, LOW);
+      digitalWrite(pin_led_yellow, LOW);
+      analogWrite(pin_led_red, pwm_max_duty);
+      break;
+  }
 }
 
 // Aciona o buzzer piezoelétrico a 1000 Hz ou silencia a saída
@@ -244,8 +316,8 @@ static void control_acoustic_alarm(const bool activate) {
 }
 
 // Avalia se as condições operacionais caracterizam disparo de alarme (temperatura crítica ou ambiente escuro)
-static bool is_alarm_triggered(const float temp_c, const bool is_dark) {
-  return temp_c > temp_threshold_critical || is_dark;
+static bool is_alarm_triggered(const TemperatureStatus temp_status, const LuminosityStatus light_status) {
+  return temp_status == TemperatureStatus::Critical || light_status == LuminosityStatus::Dark;
 }
 
 // Filtro de repique mecânico (debounce de 50 ms); detecta exclusivamente o evento de clique (borda de descida)
@@ -286,37 +358,23 @@ static void handle_user_input() {
   }
 }
 
-// Retorna o rótulo textual da faixa de temperatura para a telemetria serial
-static const __FlashStringHelper* get_temperature_label(const float temp_c) {
-  if (temp_c <= temp_threshold_normal) {
-    return F("NORMAL");
-  }
-  if (temp_c <= temp_threshold_approach) {
-    return F("ATENÇÃO");
-  }
-  if (temp_c <= temp_threshold_critical) {
-    return F("ATENÇÃO - APROX. CRÍTICA PWM");
-  }
-  return F("CRÍTICO");
-}
-
-// Transmissão periódica das informações pela porta serial
-static void transmit_telemetry(const float temp_c, const bool buzzer_active, const int raw_ldr) {
+// Transmissão periódica das informações pela porta serial a partir do pacote de telemetria
+static void transmit_telemetry(const EnvironmentalTelemetry& telemetry) {
   Serial.print(F("[TELEMETRIA] Temp: "));
-  Serial.print(temp_c, telemetry_temp_decimals);
-  Serial.print(F(" °C ("));
-  Serial.print(get_temperature_label(temp_c));
+  Serial.print(telemetry.temperature_c, telemetry_temp_decimals);
+  Serial.print(F(" C ("));
+  Serial.print(get_temperature_label(telemetry.temp_status));
 
   Serial.print(F(") | LDR: "));
-  Serial.print(raw_ldr);
+  Serial.print(telemetry.raw_ldr);
   Serial.print(F(" ("));
-  Serial.print(get_luminosity_label(raw_ldr));
+  Serial.print(get_luminosity_label(telemetry.light_status));
 
   Serial.print(F(") | Alarme: "));
-  Serial.print(buzzer_enabled ? F("HABILITADO") : F("SILENCIADO"));
+  Serial.print(telemetry.buzzer_enabled ? F("HABILITADO") : F("SILENCIADO"));
 
   Serial.print(F(" | Buzzer: "));
-  Serial.println(buzzer_active ? F("ATIVO!") : F("Inativo"));
+  Serial.println(telemetry.alarm_active ? F("ATIVO!") : F("Inativo"));
 }
 
 void setup() {
@@ -348,20 +406,33 @@ void loop() {
   const float temp_c = read_temperature_celsius();
   const int raw_ldr = read_luminosity_adc();
 
-  // Atualização imediata da sinalização visual (LEDs verde, amarelo e vermelho com PWM)
-  update_visual_signaling(temp_c);
+  // Classificação fortemente tipada dos estados fisicos
+  const TemperatureStatus temp_status = classify_temperature(temp_c);
+  const LuminosityStatus light_status = classify_luminosity(raw_ldr);
 
-  // Avaliação contínua das regras operacionais do alarme acústico
-  const bool is_dark = is_dark_condition(raw_ldr);
-  const bool alarm_condition = is_alarm_triggered(temp_c, is_dark);
+  // Atualização imediata da sinalização visual (LEDs Verde, Amarelo e Vermelho com PWM)
+  update_visual_signaling(temp_status, temp_c);
+
+  // Avaliacao continua das regras operacionais do alarme acustico
+  const bool alarm_condition = is_alarm_triggered(temp_status, light_status);
   const bool buzzer_active = alarm_condition && buzzer_enabled;
 
   // Atualização imediata do alarme sonoro (sem atraso)
   control_acoustic_alarm(buzzer_active);
 
+  // Atualização do pacote de telemetria agregada
+  latest_telemetry = {
+      .temperature_c = temp_c,
+      .raw_ldr = raw_ldr,
+      .temp_status = temp_status,
+      .light_status = light_status,
+      .alarm_active = buzzer_active,
+      .buzzer_enabled = buzzer_enabled,
+  };
+
   // Transmissão periódica da telemetria serial a cada 1 segundo (1000 ms)
   if (current_ms - last_telemetry_ms >= telemetry_interval_ms) {
     last_telemetry_ms = current_ms;
-    transmit_telemetry(temp_c, buzzer_active, raw_ldr);
+    transmit_telemetry(latest_telemetry);
   }
 }
