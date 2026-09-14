@@ -107,6 +107,7 @@ constexpr unsigned long debounce_delay_ms = 50;        // Janela de estabilizaç
 constexpr unsigned int buzzer_frequency_hz = 1000;     // Frequência do som de alerta no buzzer (Hz)
 constexpr uint8_t telemetry_temp_decimals = 1;         // Casas decimais da temperatura na telemetria
 
+namespace {
 // Classificação operacional das faixas de temperatura
 enum class TemperatureStatus : uint8_t {
   Normal,            // Até 25.0 °C: operacao normal (LED verde)
@@ -133,12 +134,12 @@ struct EnvironmentalTelemetry {
 };
 
 // Variáveis de estado global do sistema
-static bool buzzer_enabled = true;
-static uint8_t last_button_reading = HIGH;
-static uint8_t stable_button_state = HIGH;
-static unsigned long last_button_change_ms = 0;
-static unsigned long last_telemetry_ms = 0;
-static EnvironmentalTelemetry latest_telemetry = {
+bool buzzer_enabled = true;
+uint8_t last_button_reading = HIGH;
+uint8_t stable_button_state = HIGH;
+unsigned long last_button_change_ms = 0;
+unsigned long last_telemetry_ms = 0;
+EnvironmentalTelemetry latest_telemetry = {
     .temperature_c = 0.0F,
     .raw_ldr = 0,
     .temp_status = TemperatureStatus::Normal,
@@ -148,7 +149,7 @@ static EnvironmentalTelemetry latest_telemetry = {
 };
 
 // Leitura da temperatura e conversão para Celsius conforme o sensor configurado
-static float read_temperature_celsius() {
+float read_temperature_celsius() {
   const int raw_adc = analogRead(pin_temp);
 
   // Conversão para o sensor linear TMP36:
@@ -183,10 +184,10 @@ static float read_temperature_celsius() {
 }
 
 // Leitura do canal analógico do divisor de tensão do sensor LDR
-static int read_luminosity_adc() { return analogRead(pin_ldr); }
+int read_luminosity_adc() { return analogRead(pin_ldr); }
 
 // Avalia se a leitura de luminosidade caracteriza ambiente escuro conforme o divisor adotado
-static bool is_dark_condition(const int raw_adc) {
+bool is_dark_condition(const int raw_adc) {
   if (ldr_pullup_mode) {
     return raw_adc > light_threshold_dark;
   }
@@ -194,7 +195,7 @@ static bool is_dark_condition(const int raw_adc) {
 }
 
 // Avalia se a leitura de luminosidade caracteriza ambiente claro conforme o divisor adotado
-static bool is_clear_condition(const int raw_adc) {
+bool is_clear_condition(const int raw_adc) {
   if (ldr_pullup_mode) {
     return raw_adc < light_threshold_clear;
   }
@@ -202,7 +203,7 @@ static bool is_clear_condition(const int raw_adc) {
 }
 
 // Classifica o estado da temperatura
-static TemperatureStatus classify_temperature(const float temp_c) {
+TemperatureStatus classify_temperature(const float temp_c) {
   if (temp_c <= temp_threshold_normal) {
     return TemperatureStatus::Normal;
   }
@@ -216,7 +217,7 @@ static TemperatureStatus classify_temperature(const float temp_c) {
 }
 
 // Classifica o nível de luminosidade
-static LuminosityStatus classify_luminosity(const int raw_adc) {
+LuminosityStatus classify_luminosity(const int raw_adc) {
   if (is_dark_condition(raw_adc)) {
     return LuminosityStatus::Dark;
   }
@@ -227,7 +228,7 @@ static LuminosityStatus classify_luminosity(const int raw_adc) {
 }
 
 // Retorna o rótulo textual do nível de luminosidade para a telemetria serial
-static const __FlashStringHelper* get_luminosity_label(const LuminosityStatus status) {
+const __FlashStringHelper* get_luminosity_label(const LuminosityStatus status) {
   switch (status) {
     case LuminosityStatus::Dark:
       return F("ESCURA");
@@ -240,7 +241,7 @@ static const __FlashStringHelper* get_luminosity_label(const LuminosityStatus st
 }
 
 // Retorna o rótulo textual da faixa de temperatura para a telemetria serial
-static const __FlashStringHelper* get_temperature_label(const TemperatureStatus status) {
+const __FlashStringHelper* get_temperature_label(const TemperatureStatus status) {
   switch (status) {
     case TemperatureStatus::Normal:
       return F("NORMAL");
@@ -255,7 +256,7 @@ static const __FlashStringHelper* get_temperature_label(const TemperatureStatus 
 }
 
 // Interpolação linear do brilho do LED vermelho via PWM na faixa de aproximação crítica (acima de 30.0 °C até 35.0 °C)
-static uint8_t calculate_pwm_duty(const float temp_c) {
+uint8_t calculate_pwm_duty(const float temp_c) {
   if (temp_c <= temp_threshold_approach) {
     return pwm_off;
   }
@@ -278,7 +279,7 @@ static uint8_t calculate_pwm_duty(const float temp_c) {
 }
 
 // Atualização das saídas digitais e PWM dos LEDs de sinalização visual
-static void update_visual_signaling(const TemperatureStatus status, const float temp_c) {
+void update_visual_signaling(const TemperatureStatus status, const float temp_c) {
   switch (status) {
     case TemperatureStatus::Normal:
       digitalWrite(pin_led_green, HIGH);
@@ -307,7 +308,7 @@ static void update_visual_signaling(const TemperatureStatus status, const float 
 }
 
 // Aciona o buzzer piezoelétrico a 1000 Hz ou silencia a saída
-static void control_acoustic_alarm(const bool activate) {
+void control_acoustic_alarm(const bool activate) {
   if (activate) {
     tone(pin_buzzer, buzzer_frequency_hz);
     return;
@@ -316,12 +317,12 @@ static void control_acoustic_alarm(const bool activate) {
 }
 
 // Avalia se as condições operacionais caracterizam disparo de alarme (temperatura crítica ou ambiente escuro)
-static bool is_alarm_triggered(const TemperatureStatus temp_status, const LuminosityStatus light_status) {
+bool is_alarm_triggered(const TemperatureStatus temp_status, const LuminosityStatus light_status) {
   return temp_status == TemperatureStatus::Critical || light_status == LuminosityStatus::Dark;
 }
 
 // Filtro de repique mecânico (debounce de 50 ms); detecta exclusivamente o evento de clique (borda de descida)
-static bool is_button_pressed() {
+bool is_button_pressed() {
   const unsigned long current_ms = millis();
   const auto current_reading = static_cast<uint8_t>(digitalRead(pin_button));
 
@@ -343,7 +344,7 @@ static bool is_button_pressed() {
 }
 
 // Notifica na porta serial a alteração do estado do silenciador do alarme
-static void notify_buzzer_toggle(const bool enabled) {
+void notify_buzzer_toggle(const bool enabled) {
   Serial.println();
   Serial.print(F(">>> [INTERFACE DO USUÁRIO] Alarme Sonoro "));
   Serial.println(enabled ? F("HABILITADO <<<") : F("DESABILITADO (SILENCIADO) <<<"));
@@ -351,7 +352,7 @@ static void notify_buzzer_toggle(const bool enabled) {
 }
 
 // Processa a interação do usuário com o botão de alternância do alarme sonoro
-static void handle_user_input() {
+void handle_user_input() {
   if (is_button_pressed()) {
     buzzer_enabled = !buzzer_enabled;
     notify_buzzer_toggle(buzzer_enabled);
@@ -359,7 +360,7 @@ static void handle_user_input() {
 }
 
 // Transmissão periódica das informações pela porta serial a partir do pacote de telemetria
-static void transmit_telemetry(const EnvironmentalTelemetry& telemetry) {
+void transmit_telemetry(const EnvironmentalTelemetry& telemetry) {
   Serial.print(F("[TELEMETRIA] Temp: "));
   Serial.print(telemetry.temperature_c, telemetry_temp_decimals);
   Serial.print(F(" C ("));
@@ -376,6 +377,7 @@ static void transmit_telemetry(const EnvironmentalTelemetry& telemetry) {
   Serial.print(F(" | Buzzer: "));
   Serial.println(telemetry.alarm_active ? F("ATIVO!") : F("Inativo"));
 }
+}  // namespace
 
 void setup() {
   Serial.begin(serial_baud_rate);
