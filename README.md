@@ -91,4 +91,4 @@ O código adota uma diretiva `#define` no topo do arquivo principal. Basta alter
 #define SIMULATOR_WOKWI      // Ativa: Sensor NTC + LDR em modo Pull-Up (Padrão no Wokwi)
 ```
 
-Essa camada de abstração demonstra como o software pode ser desacoplado das variações físicas de hardware. O pré-processador seleciona e compila apenas as rotinas de conversão e limiares do simulador ativo, garantindo **zero impacto extra na memória** (RAM/Flash) e 100% de compatibilidade tanto com o **PlatformIO / C++17** quanto com a **Arduino IDE (`.ino`)** e o compilador web do **Tinkercad**.
+Essa camada de abstração demonstra como o software pode ser desacoplado das variações físicas de hardware. O pré-processador seleciona e compila apenas as rotinas de conversão e limiares do simulador ativo, garantindo **zero impacto extra na memória** (RAM/Flash). O projeto foi desenvolvido sob padrão **C++17 no PlatformIO**, contando também com a branch de compatibilidade `env/tinkercad` ajustada com tipos primitivos para contornar as limitações do pré-processador do Autodesk Tinkercad.
