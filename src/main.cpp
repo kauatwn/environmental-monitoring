@@ -9,8 +9,8 @@
  * Regras de Negócio e Comportamento Operacional:
  * 1. Temperatura:
  *    - Até 25.0 °C: Operação normal (LED verde ligado).
- *    - 25.1 °C a 30.0 °C: Estado de atenção (LED amarelo ligado).
- *    - 30.1 °C a 35.0 °C: Aproximação crítica com brilho gradativo do LED vermelho via PWM (30 a 255).
+ *    - Acima de 25.0 °C até 30.0 °C: Estado de atenção (LED amarelo ligado).
+ *    - Acima de 30.0 °C até 35.0 °C: Aproximação crítica com brilho gradativo do LED vermelho via PWM (30 a 255).
  *    - Acima de 35.0 °C: Estado crítico (LED vermelho em 100% de brilho).
  * 2. Luminosidade:
  *    - Classificada em Clara, Moderada ou Escura.
@@ -92,10 +92,10 @@ constexpr float ntc_min_temp_c = -40.0F;  // Limite físico de saturação do NT
 
 // Limiares operacionais de temperatura (°C)
 constexpr float temp_threshold_normal = 25.0F;    // Normal: <= 25.0 °C
-constexpr float temp_threshold_approach = 30.0F;  // Atenção intermediária: 25.0 °C a 30.0 °C
-constexpr float temp_threshold_critical = 35.0F;  // Aproximação e crítico: > 30.0 °C e > 35.0 °C
+constexpr float temp_threshold_approach = 30.0F;  // Atenção intermediária: > 25.0 °C até 30.0 °C
+constexpr float temp_threshold_critical = 35.0F;  // Aproximação crítica: > 30.0 °C até 35.0 °C; crítico: > 35.0 °C
 
-// Limites do PWM para o LED vermelho durante a aproximação crítica (30.0 °C a 35.0 °C)
+// Limites do PWM para o LED vermelho durante a aproximação crítica (acima de 30.0 °C até 35.0 °C)
 constexpr uint8_t pwm_off = 0;         // PWM desligado (0% de duty cycle)
 constexpr uint8_t pwm_min_duty = 30;   // Valor mínimo para garantir condução e visibilidade do LED
 constexpr uint8_t pwm_max_duty = 255;  // Ciclo de trabalho máximo (100% de brilho)
@@ -179,7 +179,7 @@ static const __FlashStringHelper* get_luminosity_label(const int raw_adc) {
   return F("MODERADA");
 }
 
-// Interpolação linear do brilho do LED vermelho via PWM na faixa de aproximação crítica (30 °C a 35 °C)
+// Interpolação linear do brilho do LED vermelho via PWM na faixa de aproximação crítica (acima de 30.0 °C até 35.0 °C)
 static uint8_t calculate_pwm_duty(const float temp_c) {
   if (temp_c <= temp_threshold_approach) {
     return pwm_off;
@@ -212,7 +212,7 @@ static void update_visual_signaling(const float temp_c) {
     return;
   }
 
-  // Faixa de atenção intermediária (25.0 °C a 30.0 °C): apenas LED amarelo aceso
+  // Faixa de atenção intermediária (> 25.0 °C até 30.0 °C): apenas LED amarelo aceso
   if (temp_c <= temp_threshold_approach) {
     digitalWrite(pin_led_green, LOW);
     digitalWrite(pin_led_yellow, HIGH);
@@ -220,7 +220,7 @@ static void update_visual_signaling(const float temp_c) {
     return;
   }
 
-  // Faixa de aproximação crítica (30.0 °C a 35.0 °C): LED vermelho em PWM gradual
+  // Faixa de aproximação crítica (> 30.0 °C até 35.0 °C): LED vermelho com PWM gradual
   if (temp_c <= temp_threshold_critical) {
     digitalWrite(pin_led_green, LOW);
     digitalWrite(pin_led_yellow, LOW);
@@ -273,7 +273,7 @@ static bool is_button_pressed() {
 // Notifica na porta serial a alteração do estado do silenciador do alarme
 static void notify_buzzer_toggle(const bool enabled) {
   Serial.println();
-  Serial.print(F(">>> [INTERFACE DO USUARIO] Alarme Sonoro "));
+  Serial.print(F(">>> [INTERFACE DO USUÁRIO] Alarme Sonoro "));
   Serial.println(enabled ? F("HABILITADO <<<") : F("DESABILITADO (SILENCIADO) <<<"));
   Serial.println();
 }
@@ -292,19 +292,19 @@ static const __FlashStringHelper* get_temperature_label(const float temp_c) {
     return F("NORMAL");
   }
   if (temp_c <= temp_threshold_approach) {
-    return F("ATENCAO");
+    return F("ATENÇÃO");
   }
   if (temp_c <= temp_threshold_critical) {
-    return F("ATENCAO - APROX. CRITICA PWM");
+    return F("ATENÇÃO - APROX. CRÍTICA PWM");
   }
-  return F("CRITICO");
+  return F("CRÍTICO");
 }
 
 // Transmissão periódica das informações pela porta serial
 static void transmit_telemetry(const float temp_c, const bool buzzer_active, const int raw_ldr) {
   Serial.print(F("[TELEMETRIA] Temp: "));
   Serial.print(temp_c, telemetry_temp_decimals);
-  Serial.print(F(" C ("));
+  Serial.print(F(" °C ("));
   Serial.print(get_temperature_label(temp_c));
 
   Serial.print(F(") | LDR: "));
@@ -348,7 +348,7 @@ void loop() {
   const float temp_c = read_temperature_celsius();
   const int raw_ldr = read_luminosity_adc();
 
-  // Atualização imediata da sinalização visual (LEDs Verde, Amarelo e Vermelho com PWM)
+  // Atualização imediata da sinalização visual (LEDs verde, amarelo e vermelho com PWM)
   update_visual_signaling(temp_c);
 
   // Avaliação contínua das regras operacionais do alarme acústico
